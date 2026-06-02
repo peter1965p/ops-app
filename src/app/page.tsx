@@ -1,65 +1,107 @@
-import Image from "next/image";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { getDashboardData } from "@/lib/actions/sector.actions";
+import { KpiCard } from "@/components/ui/KpiCard";
+import { ServiceControl } from "@/components/ui/ServiceControl"; // Import hinzugefügt!
+import { Activity, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+// Definiere die Typen für die Datenstruktur aus der DB
+interface ServiceData {
+    id: number;
+    badge: string;
+    badgeClass: string;
+    title: string;
+    subtitle: string;
+    time: string;
+    tasks: number;
+    issues: number;
+}
+
+export default async function Page() {
+    // Holen der Daten aus der Server-Action
+    const services: ServiceData[] = await getDashboardData();
+
+    const metrics = [
+        { label: "Pipelines today", value: "18", delta: "+3 vs. yesterday", color: "text-emerald-400", icon: Activity, trend: "up" },
+        { label: "Successful deploys", value: "14", delta: "78% success rate", color: "text-emerald-400", icon: CheckCircle, trend: "up" },
+        { label: "Failed deploys", value: "4", delta: "2 hotfixes open", color: "text-red-400", icon: XCircle, trend: "down" },
+        { label: "Open incidents", value: "3", delta: "1 critical • 2 minor", color: "text-amber-400", icon: AlertTriangle, trend: "down" },
+    ] as const;
+
+    return (
+        <div className="p-8 flex flex-col gap-8">
+            {/* TOP DEVOPS METRICS */}
+            <div className="grid grid-cols-4 gap-6">
+                {metrics.map((m) => (
+                    <KpiCard
+                        key={m.label}
+                        title={m.label}
+                        value={m.value}
+                        delta={m.delta}
+                        color={m.color}
+                        icon={m.icon}
+                        trend={m.trend}
+                    />
+                ))}
+            </div>
+
+            {/* BOTTOM ROW */}
+            <div className="grid grid-cols-3 gap-6">
+                {/* LEFT – DEPLOYMENT HISTORY */}
+                <Card className="bg-zinc-900/60 border-white/5 shadow-[0_18px_45px_rgba(0,0,0,0.55)]">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-zinc-300">Deployment history</CardTitle>
+                        <CardDescription className="text-xs text-zinc-500">Latest pipeline runs & rollouts</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-5">
+                        <div className="h-40 w-full rounded-lg bg-zinc-800/50 flex items-center justify-center text-zinc-500 text-sm">
+                            Pipeline / latency chart
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* RIGHT – ACTIVE SERVICES (DYNAMISCH) */}
+                <Card className="col-span-2 bg-zinc-900/60 border-white/5 shadow-[0_18px_45px_rgba(0,0,0,0.55)]">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-zinc-300">Active services</CardTitle>
+                        <CardDescription className="text-xs text-zinc-500">Current production components & workload</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {services.length > 0 ? (
+                            services.map((s) => (
+                                <div key={s.id} className="flex items-start justify-between">
+                                    <div className="flex items-start gap-3">
+                                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold", s.badgeClass)}>
+                                            {s.badge}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-medium text-white">{s.title}</div>
+                                            <div className="text-xs text-zinc-500">{s.subtitle}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Button-Container */}
+                                    <div className="flex flex-col items-end gap-1">
+                                        <div className="text-right text-[11px] text-zinc-500">
+                                            <div>{s.time}</div>
+                                            <div className="text-zinc-400">
+                                                {s.tasks} tasks • {s.issues} issues
+                                            </div>
+                                        </div>
+                                        {/* Die ServiceControl Komponente */}
+                                        <ServiceControl
+                                            id={s.id.toString()}
+                                            status={s.badgeClass.includes("emerald") ? "running" : "stopped"}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-zinc-500 text-sm italic">Keine aktiven Services gefunden...</div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div> {/* Ende Bottom Row Grid */}
+        </div> // Ende Main Div
+    );
 }
